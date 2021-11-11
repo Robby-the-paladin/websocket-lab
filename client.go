@@ -1,3 +1,4 @@
+// git check
 package main
 
 import (
@@ -11,7 +12,7 @@ import (
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
 
-var upgrader = websocket.Upgrader{} // use default options
+var upgrader = websocket.Upgrader{}
 
 func echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
