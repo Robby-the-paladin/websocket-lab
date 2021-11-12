@@ -146,6 +146,18 @@ window.addEventListener("load", function(evt) {
         return false;
     };
 
+	document.getElementById("ping").onclick = function(evt) {
+		input.value="P" + Number(num.value).toString() + "#" + url.value;
+		document.getElementById("send").onclick();
+        return false;
+    };
+
+	document.getElementById("trace").onclick = function(evt) {
+		input.value="T" + "#" + url.value;
+        document.getElementById("send").onclick();
+        return false;
+    };
+
 });
 </script>
 </head>
@@ -155,8 +167,12 @@ window.addEventListener("load", function(evt) {
 <form>
 <button id="open">Open</button>
 <button id="close">Close</button>
-<p><input id="input" type="text" value="Hello world!">
-<button id="send">Send</button>
+<p><button id="ping">Ping</button>
+<button id="trace">Trace</button>
+<p><input id="input" type="text" value="P10#www.google.com" hidden="true">
+<input id="url" type="text" value="www.google.com">
+<p><input id="num" type="number" value="5">
+<button id="send" hidden="true">Send</button>
 </form>
 </td><td valign="top" width="50%">
 <div id="output" style="max-height: 70vh;overflow-y: scroll;"></div>

@@ -33,18 +33,27 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		log.Printf("recv: %s", message)
 		request := string(message)
 		if request[0] == 'P' {
-			go func(conn *websocket.Conn) {
+			var num = 10
+			var url = "www.google.com"
+			for i := 0; i < len(request); i++ {
+				if request[i] == '#' {
+					anum, err := strconv.Atoi(request[1:i])
+					if err != nil {
+						log.Print("atoi:", err)
+						os.Exit(2)
+					}
+					num = anum
+					url = request[i+1:]
+				}
+			}
+			go func(conn *websocket.Conn, num int, url string) {
 				fmt.Println("Ping requested")
-				pinger, err := ping.NewPinger("www.google.com")
+				pinger, err := ping.NewPinger(url)
+				if err != nil {
+					log.Print("pinger:", err)
+				}
 				pinger.SetPrivileged(true)
-				if err != nil {
-					panic(err)
-				}
-				ping_num, err := strconv.Atoi(request[1:])
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(2)
-				}
+				ping_num := num
 				pinger.Count = ping_num
 				pinger.OnRecv = func(pkt *ping.Packet) {
 
@@ -65,12 +74,13 @@ func echo(w http.ResponseWriter, r *http.Request) {
 				if err != nil {
 					log.Print("pinger:", err)
 				}
-			}(c)
+			}(c, num, url)
 		}
 		if request[0] == 'T' {
-			go func(conn *websocket.Conn) {
+			url := request[2:]
+			go func(conn *websocket.Conn, url string) {
 				fmt.Println("Trace requested")
-				command := exec.Command("cmd", "/C", "tracert", "www.google.com")
+				command := exec.Command("cmd", "/C", "tracert", url)
 				data, err := command.Output()
 				if err != nil {
 					fmt.Println("Error: ", err)
@@ -84,7 +94,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 						time.Sleep(100 * time.Millisecond)
 					}
 				}
-			}(c)
+			}(c, url)
 		}
 	}
 }
