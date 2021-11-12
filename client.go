@@ -41,12 +41,10 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("recv: %s", message)
 		request := string(message)
-		if request[0] == 'U' {
-			err := server_connection.WriteMessage(websocket.TextMessage, []byte(request[1:]))
-			if err != nil {
-				log.Println("write:", err)
-				return
-			}
+		err = server_connection.WriteMessage(websocket.TextMessage, []byte(request))
+		if err != nil {
+			log.Println("write:", err)
+			return
 		}
 		go serve_server()
 	}
@@ -136,7 +134,7 @@ window.addEventListener("load", function(evt) {
             return false;
         }
         print("SEND: " + input.value);
-        ws.send("U" + input.value);
+        ws.send(input.value);
         return false;
     };
 
