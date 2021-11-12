@@ -33,55 +33,58 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		log.Printf("recv: %s", message)
 		request := string(message)
 		if request[0] == 'P' {
-			fmt.Println("Ping requested")
-			pinger, err := ping.NewPinger("www.google.com")
-			pinger.SetPrivileged(true)
-			if err != nil {
-				panic(err)
-			}
-			ping_num, err := strconv.Atoi(request[1:])
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(2)
-			}
-			pinger.Count = ping_num
-			pinger.OnRecv = func(pkt *ping.Packet) {
+			go func(conn *websocket.Conn) {
+				fmt.Println("Ping requested")
+				pinger, err := ping.NewPinger("www.google.com")
+				pinger.SetPrivileged(true)
+				if err != nil {
+					panic(err)
+				}
+				ping_num, err := strconv.Atoi(request[1:])
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(2)
+				}
+				pinger.Count = ping_num
+				pinger.OnRecv = func(pkt *ping.Packet) {
 
-				out := fmt.Sprintf("%d bytes from %s: attempt#%d time=%v\n",
+					out := fmt.Sprintf("%d bytes from %s: attempt#%d time=%v\n",
 
-					pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt)
-				c.WriteMessage(websocket.TextMessage, []byte(out))
-			}
-			pinger.OnFinish = func(stats *ping.Statistics) {
-				var resp string
-				out := fmt.Sprintf("%s\n", stats.Addr)
-				resp += out + "\n"
-				out = fmt.Sprintf("%v%% packet loss\n", stats.PacketLoss)
-				resp += out + "\n"
-				c.WriteMessage(websocket.TextMessage, []byte(resp))
-			}
-			err = pinger.Run() // Blocks until finished.
-			if err != nil {
-				log.Print("pinger:", err)
-			}
+						pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt)
+					conn.WriteMessage(websocket.TextMessage, []byte(out))
+				}
+				pinger.OnFinish = func(stats *ping.Statistics) {
+					var resp string
+					out := fmt.Sprintf("%s\n", stats.Addr)
+					resp += out + "\n"
+					out = fmt.Sprintf("%v%% packet loss\n", stats.PacketLoss)
+					resp += out + "\n"
+					conn.WriteMessage(websocket.TextMessage, []byte(resp))
+				}
+				err = pinger.Run() // Blocks until finished.
+				if err != nil {
+					log.Print("pinger:", err)
+				}
+			}(c)
 		}
 		if request[0] == 'T' {
-			fmt.Println("Trace requested")
-			command := exec.Command("cmd", "/C", "tracert", "www.google.com")
-			data, err := command.Output()
-			if err != nil {
-				fmt.Println("Error: ", err)
-			}
-			fmt.Println("Trace completed")
-			fmt.Println(data)
-			start := 0
-			for i := 0; i < len(data); i++ {
-				if data[i] == byte(10) {
-					c.WriteMessage(websocket.TextMessage, []byte(string(data[start:i])+"\n"))
-					start = i + 1
-					time.Sleep(100 * time.Millisecond)
+			go func(conn *websocket.Conn) {
+				fmt.Println("Trace requested")
+				command := exec.Command("cmd", "/C", "tracert", "www.google.com")
+				data, err := command.Output()
+				if err != nil {
+					fmt.Println("Error: ", err)
 				}
-			}
+				fmt.Println("Trace completed")
+				start := 0
+				for i := 0; i < len(data); i++ {
+					if data[i] == byte(10) {
+						conn.WriteMessage(websocket.TextMessage, []byte(string(data[start:i])+"\n"))
+						start = i + 1
+						time.Sleep(100 * time.Millisecond)
+					}
+				}
+			}(c)
 		}
 	}
 }
