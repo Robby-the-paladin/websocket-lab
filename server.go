@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/go-ping/ping"
 	"github.com/gorilla/websocket"
@@ -49,7 +51,6 @@ func echo(w http.ResponseWriter, r *http.Request) {
 
 					pkt.Nbytes, pkt.IPAddr, pkt.Seq, pkt.Rtt)
 				c.WriteMessage(websocket.TextMessage, []byte(out))
-				//fmt.Println(pkt)
 			}
 			pinger.OnFinish = func(stats *ping.Statistics) {
 				var resp string
@@ -62,6 +63,24 @@ func echo(w http.ResponseWriter, r *http.Request) {
 			err = pinger.Run() // Blocks until finished.
 			if err != nil {
 				log.Print("pinger:", err)
+			}
+		}
+		if request[0] == 'T' {
+			fmt.Println("Trace requested")
+			command := exec.Command("cmd", "/C", "tracert", "www.google.com")
+			data, err := command.Output()
+			if err != nil {
+				fmt.Println("Error: ", err)
+			}
+			fmt.Println("Trace completed")
+			fmt.Println(data)
+			start := 0
+			for i := 0; i < len(data); i++ {
+				if data[i] == byte(10) {
+					c.WriteMessage(websocket.TextMessage, []byte(string(data[start:i])+"\n"))
+					start = i + 1
+					time.Sleep(100 * time.Millisecond)
+				}
 			}
 		}
 	}
